@@ -1,9 +1,10 @@
 import unittest
 import warnings
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from types import ModuleType
 import sys
 
+from PySide6.QtCore import QMimeData, QUrl
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from hydra_tiff_meta_reader.window import MainWindow
@@ -24,6 +25,10 @@ class TestMainWindow(unittest.TestCase):
         print('Testing MainWindow: initial metadata display is empty')
         self.assertEqual(self.window.metadata_tree.topLevelItemCount(), 0)
         self.assertEqual(self.window.file_label.text(), 'No TIFF file selected')
+
+    def test_metadata_tree_default_column_width(self):
+        print('Testing MainWindow: metadata column is wide by default')
+        self.assertEqual(self.window.metadata_tree.columnWidth(0), 300)
 
     def _mock_reader(self, **kwargs):
         module = ModuleType('squirrel.library.hydra')
@@ -77,3 +82,51 @@ class TestMainWindow(unittest.TestCase):
             with patch.object(self.window, 'load_tiff') as load:
                 self.window.open_tiff_dialog()
         load.assert_called_once_with('selected.tif')
+
+    def _drop_event(self, paths):
+        mime_data = QMimeData()
+        mime_data.setUrls([QUrl.fromLocalFile(path) for path in paths])
+        event = Mock()
+        event.mimeData.return_value = mime_data
+        return event
+
+    def test_drag_enter_accepts_tiff(self):
+        print('Testing dragEnterEvent: accept local TIFF files')
+        for path in ('/tmp/sample.tif', '/tmp/sample.TIFF'):
+            with self.subTest(path=path):
+                event = self._drop_event([path])
+                self.window.dragEnterEvent(event)
+                event.acceptProposedAction.assert_called_once_with()
+                event.ignore.assert_not_called()
+
+    def test_drag_enter_rejects_other_files_and_multiple_files(self):
+        print('Testing dragEnterEvent: reject unsupported drops')
+        for paths in ([], ['/tmp/sample.png'],
+                      ['/tmp/a.tif', '/tmp/b.tif']):
+            with self.subTest(paths=paths):
+                event = self._drop_event(paths)
+                self.window.dragEnterEvent(event)
+                event.ignore.assert_called_once_with()
+                event.acceptProposedAction.assert_not_called()
+
+    def test_drop_tiff_loads_metadata(self):
+        print('Testing dropEvent: dropped TIFF is loaded')
+        event = self._drop_event(['/tmp/sample.tif'])
+        with patch.object(self.window, 'load_tiff', return_value=True) as load:
+            self.window.dropEvent(event)
+        load.assert_called_once_with('/tmp/sample.tif')
+        event.acceptProposedAction.assert_called_once_with()
+
+    def test_drop_invalid_file_is_ignored(self):
+        print('Testing dropEvent: non-TIFF files are ignored')
+        event = self._drop_event(['/tmp/sample.txt'])
+        with patch.object(self.window, 'load_tiff') as load:
+            self.window.dropEvent(event)
+        load.assert_not_called()
+        event.ignore.assert_called_once_with()
+
+    def test_drag_move_accepts_tiff(self):
+        print('Testing dragMoveEvent: keep TIFF drag accepted')
+        event = self._drop_event(['/tmp/sample.tiff'])
+        self.window.dragMoveEvent(event)
+        event.acceptProposedAction.assert_called_once_with()

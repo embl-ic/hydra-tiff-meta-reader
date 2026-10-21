@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Hydra TIFF Metadata Reader')
         self.resize(900, 600)
         self.current_filepath = None
+        self.setAcceptDrops(True)
 
         self.open_button = QPushButton('Open TIFF…')
         self.open_button.clicked.connect(self.open_tiff_dialog)
@@ -29,6 +30,7 @@ class MainWindow(QMainWindow):
         self.file_label = QLabel('No TIFF file selected')
         self.metadata_tree = QTreeWidget()
         self.metadata_tree.setHeaderLabels(['Metadata', 'Value'])
+        self.metadata_tree.setColumnWidth(0, 300)
         self.metadata_tree.setAlternatingRowColors(True)
 
         self.preset_combo = QComboBox()
@@ -71,6 +73,47 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         self.preset_combo.currentIndexChanged.connect(self._apply_preset)
+
+    @staticmethod
+    def _dropped_tiff_path(event):
+        """Return the path of a single local TIFF dropped on the window."""
+        mime_data = event.mimeData()
+        if not mime_data.hasUrls():
+            return None
+
+        urls = mime_data.urls()
+        if len(urls) != 1 or not urls[0].isLocalFile():
+            return None
+
+        filepath = urls[0].toLocalFile()
+        if Path(filepath).suffix.lower() not in ('.tif', '.tiff'):
+            return None
+
+        return filepath
+
+    def dragEnterEvent(self, event):
+        """Accept drags containing exactly one local TIFF file."""
+        if self._dropped_tiff_path(event) is not None:
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        """Keep an eligible TIFF drag accepted while moving over the window."""
+        if self._dropped_tiff_path(event) is not None:
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """Load a TIFF dropped onto the application window."""
+        filepath = self._dropped_tiff_path(event)
+        if filepath is None:
+            event.ignore()
+            return
+
+        event.acceptProposedAction()
+        self.load_tiff(filepath)
 
     def open_tiff_dialog(self):
         """Ask the user for a TIFF file and load its metadata."""
