@@ -54,8 +54,8 @@ class MainWindow(QMainWindow):
         named_widget.setLayout(named_layout)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.metadata_tree, 'Complete metadata')
         self.tabs.addTab(named_widget, 'Selected metadata')
+        self.tabs.addTab(self.metadata_tree, 'Complete metadata')
 
         layout = QVBoxLayout()
         buttons = QHBoxLayout()

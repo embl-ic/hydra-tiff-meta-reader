@@ -57,6 +57,12 @@ class TestMetadataSelection(unittest.TestCase):
             self.assertGreaterEqual(index, 0)
             self.assertLess(index, layout.count() - 1)
 
+    def test_selected_metadata_is_default_tab(self):
+        print('Testing metadata selection: selected metadata is first and active')
+        self.assertEqual(self.window.tabs.tabText(0), 'Selected metadata')
+        self.assertEqual(self.window.tabs.tabText(1), 'Complete metadata')
+        self.assertEqual(self.window.tabs.currentIndex(), 0)
+
     def test_default_resolution_selection(self):
         print('Testing metadata selection: resolution preset on load')
         self.assertTrue(self.window.load_tiff('sample.tif'))
@@ -124,7 +130,7 @@ class TestMetadataSelection(unittest.TestCase):
 
     def test_selection_panel_precedes_display(self):
         print('Testing metadata selection: side-by-side layout')
-        named_widget = self.window.tabs.widget(1)
+        named_widget = self.window.tabs.widget(0)
         layout = named_widget.layout()
         self.assertEqual(layout.itemAt(0).widget().title(), 'Selection')
         self.assertIs(layout.itemAt(1).widget(), self.window.named_table)
