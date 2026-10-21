@@ -106,7 +106,7 @@ class TestClipboardAndSettings(unittest.TestCase):
 
         with patch.object(QFileDialog, 'getOpenFileName', return_value=('', '')) as dialog:
             other_window.open_tiff_dialog()
-        self.assertEqual(dialog.call_args.args[2], str(Path(filepath).parent))
+        self.assertTrue(Path(dialog.call_args.args[2]).samefile(Path(filepath).parent))
 
     def test_failed_load_does_not_change_last_directory(self):
         print('Testing load_tiff: failed loads do not overwrite last directory')
@@ -116,7 +116,8 @@ class TestClipboardAndSettings(unittest.TestCase):
 
         with patch.object(QMessageBox, 'critical'):
             self.assertFalse(self.window.load_tiff('/other/invalid.tif'))
-        self.assertEqual(
-            self.window.settings.value('last_tiff_directory'),
-            str(Path(filepath).parent),
+        self.assertTrue(
+            Path(self.window.settings.value('last_tiff_directory')).samefile(
+                Path(filepath).parent,
+            ),
         )

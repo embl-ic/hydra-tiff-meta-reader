@@ -1,3 +1,4 @@
+import os
 import unittest
 import warnings
 from unittest.mock import Mock, patch
@@ -56,7 +57,9 @@ class TestMainWindow(unittest.TestCase):
         self.assertEqual(repeated.child(0).text(0), '[0]')
         self.assertEqual(repeated.child(1).text(1), 'second')
         self.assertEqual(root.child(2).text(1), '')
-        self.assertEqual(self.window.file_label.text(), '/tmp/example.tif')
+        self.assertEqual(
+            self.window.file_label.text(), os.path.normpath('/tmp/example.tif'),
+        )
 
     def test_load_tiff_failure_keeps_previous_display(self):
         print('Testing load_tiff: errors leave previous metadata visible')
