@@ -41,7 +41,9 @@ The `hydra` installation extra installs squirrel from its `hydra-dev` branch.
 The application can launch without squirrel, but opening TIFF files requires it.
 The **Selected metadata** tab provides squirrel's named metadata fields with
 values and units. The `resolution` preset is selected by default; switch to
-`geometry` or `No preset` and optionally check additional fields. Missing
+`geometry` or `No preset`. Choosing a preset checks its fields automatically;
+changing any checkbox switches to `No preset` while preserving the current
+field selection. The selection controls appear beside the metadata table. Missing
 values appear as blank cells. The **Complete metadata** tab continues to show
 the original XML hierarchy.
 

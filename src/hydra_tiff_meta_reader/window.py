@@ -5,8 +5,9 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QFileDialog, QGroupBox, QHBoxLayout, QLabel,
     QMainWindow, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
-    QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 )
+from PySide6.QtCore import QSignalBlocker
 
 
 class MainWindow(QMainWindow):
@@ -41,13 +42,14 @@ class MainWindow(QMainWindow):
         self.selection_layout = QVBoxLayout()
         self.selection_layout.addWidget(QLabel('Preset'))
         self.selection_layout.addWidget(self.preset_combo)
-        self.selection_layout.addWidget(QLabel('Additional fields'))
+        self.selection_layout.addWidget(QLabel('Fields'))
+        self.selection_layout.addStretch()
         selection_box = QGroupBox('Selection')
         selection_box.setLayout(self.selection_layout)
 
-        named_layout = QVBoxLayout()
-        named_layout.addWidget(selection_box)
-        named_layout.addWidget(self.named_table)
+        named_layout = QHBoxLayout()
+        named_layout.addWidget(selection_box, 1)
+        named_layout.addWidget(self.named_table, 3)
         named_widget = QWidget()
         named_widget.setLayout(named_layout)
 
@@ -68,7 +70,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
-        self.preset_combo.currentIndexChanged.connect(self.refresh_selected_metadata)
+        self.preset_combo.currentIndexChanged.connect(self._apply_preset)
 
     def open_tiff_dialog(self):
         """Ask the user for a TIFF file and load its metadata."""
@@ -91,8 +93,7 @@ class MainWindow(QMainWindow):
                 HYDRA_METADATA_FIELDS, HYDRA_METADATA_PRESETS
             )
             selected = extract_hydra_metadata(
-                filepath, preset=self.preset_combo.currentData(),
-                fields=self._checked_fields(),
+                filepath, fields=self._checked_fields(),
             )
         except Exception as error:
             QMessageBox.critical(self, 'Unable to read Hydra TIFF', str(error))
@@ -126,8 +127,7 @@ class MainWindow(QMainWindow):
             )
 
             metadata = extract_hydra_metadata(
-                self.current_filepath, preset=self.preset_combo.currentData(),
-                fields=self._checked_fields(),
+                self.current_filepath, fields=self._checked_fields(),
             )
             if not metadata:
                 QMessageBox.warning(
@@ -158,9 +158,28 @@ class MainWindow(QMainWindow):
 
         for field in fields:
             checkbox = QCheckBox(field)
-            checkbox.toggled.connect(self.refresh_selected_metadata)
-            self.selection_layout.addWidget(checkbox)
+            checkbox.toggled.connect(self._field_toggled)
+            self.selection_layout.insertWidget(
+                self.selection_layout.count() - 1, checkbox
+            )
             self.field_checks[field] = checkbox
+
+        self._presets = presets
+        self._apply_preset()
+
+    def _apply_preset(self, *_):
+        """Check exactly the fields defined by the selected preset."""
+        selected = set(self._presets.get(self.preset_combo.currentData(), ()))
+        for name, checkbox in self.field_checks.items():
+            with QSignalBlocker(checkbox):
+                checkbox.setChecked(name in selected)
+        self.refresh_selected_metadata()
+
+    def _field_toggled(self, *_):
+        """Treat any manual checkbox change as a custom selection."""
+        with QSignalBlocker(self.preset_combo):
+            self.preset_combo.setCurrentIndex(0)
+        self.refresh_selected_metadata()
 
     def _checked_fields(self):
         return [name for name, checkbox in self.field_checks.items()
@@ -175,8 +194,7 @@ class MainWindow(QMainWindow):
             from squirrel.library.hydra import extract_hydra_metadata
 
             selected = extract_hydra_metadata(
-                self.current_filepath, preset=self.preset_combo.currentData(),
-                fields=self._checked_fields(),
+                self.current_filepath, fields=self._checked_fields(),
             )
         except Exception as error:
             QMessageBox.critical(self, 'Unable to extract metadata', str(error))

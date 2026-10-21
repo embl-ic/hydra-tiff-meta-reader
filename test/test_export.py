@@ -58,7 +58,7 @@ class TestYamlExport(unittest.TestCase):
             self.assertTrue(self.window.export_yaml_dialog())
 
         self.hydra.extract_hydra_metadata.assert_called_with(
-            'sample.tif', preset='resolution', fields=['stage_x'],
+            'sample.tif', fields=['pixel_size_x', 'stage_x'],
         )
         self.hydra.save_hydra_metadata.assert_called_once_with(
             {'pixel_size_x': {'value': 7.0, 'unit': 'nm'}}, 'result.yaml',
