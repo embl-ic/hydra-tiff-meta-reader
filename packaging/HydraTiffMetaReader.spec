@@ -6,7 +6,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
 
 
-project_root = Path(SPECPATH).parent.parent
+project_root = Path(SPECPATH).parent
 
 analysis = Analysis(
     [str(project_root / 'src' / 'hydra_tiff_meta_reader' / '__main__.py')],
