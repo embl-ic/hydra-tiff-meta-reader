@@ -45,7 +45,12 @@ values and units. The `resolution` preset is selected by default; switch to
 values appear as blank cells. The **Complete metadata** tab continues to show
 the original XML hierarchy.
 
-YAML export will be added in a later update.
+To export the current selection, click **Export YAML…** and choose a destination.
+The application re-extracts the active preset and checked fields, then uses
+`squirrel.library.hydra.save_hydra_metadata` to write the YAML file. The button
+is available after opening a TIFF file. Canceling the dialog writes nothing;
+exporting with no fields selected displays a warning. Missing field values
+are retained as `null` in the YAML output.
 
 ## License
 

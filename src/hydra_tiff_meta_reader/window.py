@@ -21,6 +21,10 @@ class MainWindow(QMainWindow):
         self.open_button = QPushButton('Open TIFF…')
         self.open_button.clicked.connect(self.open_tiff_dialog)
 
+        self.export_button = QPushButton('Export YAML…')
+        self.export_button.setEnabled(False)
+        self.export_button.clicked.connect(self.export_yaml_dialog)
+
         self.file_label = QLabel('No TIFF file selected')
         self.metadata_tree = QTreeWidget()
         self.metadata_tree.setHeaderLabels(['Metadata', 'Value'])
@@ -52,7 +56,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(named_widget, 'Selected metadata')
 
         layout = QVBoxLayout()
-        layout.addWidget(self.open_button)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.open_button)
+        buttons.addWidget(self.export_button)
+
+        layout.addLayout(buttons)
         layout.addWidget(self.file_label)
         layout.addWidget(self.tabs)
 
@@ -95,7 +103,44 @@ class MainWindow(QMainWindow):
         self.metadata_tree.expandToDepth(0)
         self._show_named_metadata(selected)
         self.current_filepath = str(Path(filepath))
+        self.export_button.setEnabled(True)
         self.file_label.setText(self.current_filepath)
+        return True
+
+    def export_yaml_dialog(self):
+        """Export the current named-field selection using squirrel."""
+        if self.current_filepath is None:
+            return False
+
+        default_path = str(Path(self.current_filepath).with_suffix('.yaml'))
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, 'Export selected metadata', default_path,
+            'YAML files (*.yaml *.yml);;All files (*)',
+        )
+        if not filepath:
+            return False
+
+        try:
+            from squirrel.library.hydra import (
+                extract_hydra_metadata, save_hydra_metadata,
+            )
+
+            metadata = extract_hydra_metadata(
+                self.current_filepath, preset=self.preset_combo.currentData(),
+                fields=self._checked_fields(),
+            )
+            if not metadata:
+                QMessageBox.warning(
+                    self, 'No metadata selected',
+                    'Choose a preset or at least one field before exporting.',
+                )
+                return False
+
+            save_hydra_metadata(metadata, filepath)
+        except Exception as error:
+            QMessageBox.critical(self, 'Unable to export YAML', str(error))
+            return False
+
         return True
 
     def _populate_selection_controls(self, fields, presets):
