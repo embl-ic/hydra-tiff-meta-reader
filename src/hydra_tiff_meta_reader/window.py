@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
+from PySide6.QtCore import QSettings, QSignalBlocker
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QFileDialog, QGroupBox, QHBoxLayout, QLabel,
     QMainWindow, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
     QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 )
-from PySide6.QtCore import QSignalBlocker
 
 
 class MainWindow(QMainWindow):
@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Hydra TIFF Metadata Reader')
         self.resize(900, 600)
         self.current_filepath = None
+        self.settings = QSettings('EMBL-IC', 'HydraTiffMetaReader')
         self.setAcceptDrops(True)
 
         self.open_button = QPushButton('Open TIFF…')
@@ -26,6 +27,10 @@ class MainWindow(QMainWindow):
         self.export_button = QPushButton('Export YAML…')
         self.export_button.setEnabled(False)
         self.export_button.clicked.connect(self.export_yaml_dialog)
+
+        self.copy_button = QPushButton('Copy metadata')
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self.copy_yaml_to_clipboard)
 
         self.file_label = QLabel('No TIFF file selected')
         self.metadata_tree = QTreeWidget()
@@ -63,6 +68,7 @@ class MainWindow(QMainWindow):
         buttons = QHBoxLayout()
         buttons.addWidget(self.open_button)
         buttons.addWidget(self.export_button)
+        buttons.addWidget(self.copy_button)
 
         layout.addLayout(buttons)
         layout.addWidget(self.file_label)
@@ -118,7 +124,9 @@ class MainWindow(QMainWindow):
     def open_tiff_dialog(self):
         """Ask the user for a TIFF file and load its metadata."""
         filepath, _ = QFileDialog.getOpenFileName(
-            self, 'Open Hydra TIFF', '', 'TIFF files (*.tif *.tiff);;All files (*)'
+            self, 'Open Hydra TIFF',
+            self.settings.value('last_tiff_directory', '', type=str),
+            'TIFF files (*.tif *.tiff);;All files (*)'
         )
         if filepath:
             self.load_tiff(filepath)
@@ -148,7 +156,38 @@ class MainWindow(QMainWindow):
         self._show_named_metadata(selected)
         self.current_filepath = str(Path(filepath))
         self.export_button.setEnabled(True)
+        self.copy_button.setEnabled(True)
+        self.settings.setValue('last_tiff_directory',
+                               str(Path(filepath).resolve().parent))
         self.file_label.setText(self.current_filepath)
+        return True
+
+    def copy_yaml_to_clipboard(self):
+        """Copy the current field selection as YAML to the clipboard."""
+        if self.current_filepath is None:
+            return False
+
+        try:
+            import yaml
+            from PySide6.QtWidgets import QApplication
+            from squirrel.library.hydra import extract_hydra_metadata
+
+            metadata = extract_hydra_metadata(
+                self.current_filepath, fields=self._checked_fields(),
+            )
+            if not metadata:
+                QMessageBox.warning(
+                    self, 'No metadata selected',
+                    'Choose a preset or at least one field before copying.',
+                )
+                return False
+
+            text = yaml.safe_dump(metadata, sort_keys=False, allow_unicode=True)
+            QApplication.clipboard().setText(text)
+        except Exception as error:
+            QMessageBox.critical(self, 'Unable to copy YAML', str(error))
+            return False
+
         return True
 
     def export_yaml_dialog(self):
