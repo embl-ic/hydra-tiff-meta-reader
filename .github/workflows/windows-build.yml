@@ -1,0 +1,42 @@
+name: Windows executable
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install application and build dependencies
+        run: python -m pip install ".[dev,hydra,build]"
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest test/ -v -s
+
+      - name: Build Windows application
+        run: python -m PyInstaller --noconfirm --clean packaging/HydraTiffMetaReader.spec
+
+      - name: Create distributable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/HydraTiffMetaReader -DestinationPath dist/HydraTiffMetaReader-windows.zip
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HydraTiffMetaReader-windows
+          path: dist/HydraTiffMetaReader-windows.zip
+          if-no-files-found: error

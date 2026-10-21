@@ -24,3 +24,6 @@ Thumbs.db
 
 # Packaging artifacts
 *.spec
+
+# Track the maintained PyInstaller specification
+!packaging/HydraTiffMetaReader.spec

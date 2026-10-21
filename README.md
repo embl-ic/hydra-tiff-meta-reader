@@ -57,3 +57,31 @@ are retained as `null` in the YAML output.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Windows executable
+
+Windows builds use PyInstaller and include the Python runtime, PySide6, and
+squirrel. Users do not need to install Python.
+
+Open **Actions → Windows executable → Run workflow** on GitHub to build a
+Windows distribution. Pushing a tag starting with `v` also triggers a build.
+Download the `HydraTiffMetaReader-windows` artifact from the workflow run,
+extract the ZIP, and run `HydraTiffMetaReader.exe` inside the extracted folder.
+Keep the other files alongside the executable.
+
+To build locally **on Windows** (PyInstaller cannot cross-compile from Linux):
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev,hydra,build]"
+python -m pytest test/ -v -s
+python -m PyInstaller --noconfirm --clean packaging/HydraTiffMetaReader.spec
+```
+
+The output is in `dist/HydraTiffMetaReader/`. This is a *one-folder* build.
+The `hydra` extra installs squirrel from the `0.5.9` Git tag at build
+time, rather than from a moving development branch. For fully immutable
+builds, pin the corresponding Git commit SHA. Test the
+Windows executable with a real Hydra TIFF, including YAML export. Unsigned
+builds may trigger Windows SmartScreen warnings.
