@@ -162,23 +162,32 @@ class MainWindow(QMainWindow):
         self.file_label.setText(self.current_filepath)
         return True
 
+    def _metadata_for_active_tab(self):
+        """Extract metadata corresponding to the currently displayed tab."""
+        if self.tabs.currentWidget() is self.metadata_tree:
+            from squirrel.library.hydra import read_hydra_metadata
+
+            return read_hydra_metadata(self.current_filepath)
+
+        from squirrel.library.hydra import extract_hydra_metadata
+
+        return extract_hydra_metadata(
+            self.current_filepath, fields=self._checked_fields(),
+        )
+
     def copy_yaml_to_clipboard(self):
-        """Copy the current field selection as YAML to the clipboard."""
+        """Copy metadata from the active tab as YAML to the clipboard."""
         if self.current_filepath is None:
             return False
 
         try:
             import yaml
             from PySide6.QtWidgets import QApplication
-            from squirrel.library.hydra import extract_hydra_metadata
-
-            metadata = extract_hydra_metadata(
-                self.current_filepath, fields=self._checked_fields(),
-            )
+            metadata = self._metadata_for_active_tab()
             if not metadata:
                 QMessageBox.warning(
                     self, 'No metadata selected',
-                    'Choose a preset or at least one field before copying.',
+                    'Choose at least one field before copying.',
                 )
                 return False
 
@@ -191,30 +200,26 @@ class MainWindow(QMainWindow):
         return True
 
     def export_yaml_dialog(self):
-        """Export the current named-field selection using squirrel."""
+        """Export metadata from the active tab using squirrel."""
         if self.current_filepath is None:
             return False
 
         default_path = str(Path(self.current_filepath).with_suffix('.yaml'))
         filepath, _ = QFileDialog.getSaveFileName(
-            self, 'Export selected metadata', default_path,
+            self, 'Export metadata', default_path,
             'YAML files (*.yaml *.yml);;All files (*)',
         )
         if not filepath:
             return False
 
         try:
-            from squirrel.library.hydra import (
-                extract_hydra_metadata, save_hydra_metadata,
-            )
+            from squirrel.library.hydra import save_hydra_metadata
 
-            metadata = extract_hydra_metadata(
-                self.current_filepath, fields=self._checked_fields(),
-            )
+            metadata = self._metadata_for_active_tab()
             if not metadata:
                 QMessageBox.warning(
                     self, 'No metadata selected',
-                    'Choose a preset or at least one field before exporting.',
+                    'Choose at least one field before exporting.',
                 )
                 return False
 
