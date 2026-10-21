@@ -12,12 +12,12 @@ license = "MIT"
 authors = [{name = "EMBL Imaging Centre"}]
 dependencies = [
     "PySide6>=6.6",
+    "squirrel @ git+https://github.com/embl-ic/squirrel.git@0.5.9",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 build = ["pyinstaller>=6,<7"]
-hydra = ["squirrel @ git+https://github.com/embl-ic/squirrel.git@0.5.9"]
 
 [project.scripts]
 hydra-tiff-meta-reader = "hydra_tiff_meta_reader.app:main"
