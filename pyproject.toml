@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+hydra = ["squirrel @ git+https://github.com/embl-ic/squirrel.git@hydra-dev"]
 
 [project.scripts]
 hydra-tiff-meta-reader = "hydra_tiff_meta_reader.app:main"
